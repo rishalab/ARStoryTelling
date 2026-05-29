@@ -105,7 +105,8 @@ def run_pipeline(image_path: str, output_dir: str = "output") -> dict:
     beats      = extract_beats(
         raw_text=ocr_result["raw_text"],
         story=story_name,
-        skandha=text_extraction.get("skandha", "")
+        skandha=text_extraction.get("skandha", ""),
+        characters=text_extraction.get("characters", [])
     )
 
     graph2 = beats["graph2"]

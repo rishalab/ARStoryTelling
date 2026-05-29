@@ -18,7 +18,6 @@ Standalone test:
 
 import json
 import re
-from rule_extractor import extract_candidates as _extract_candidates_from_rule
 import os
 import argparse
 from groq import Groq
@@ -69,11 +68,11 @@ def extract_verbs(text: str) -> list:
 
 
 # ── LLM: full beat extraction + scene composition ────────────────────────────
-def extract_beats_llm(raw_text: str, characters: list, verbs: list) -> dict:
+def extract_beats_llm(raw_text: str, character_ids: list, verbs: list) -> dict:
     """
     Single LLM call that produces both Graph 2 and Graph 3.
     """
-    characters_str = ", ".join(characters) if characters else "unknown"
+    characters_str = ", ".join(character_ids) if character_ids else "unknown"
     verbs_str      = ", ".join(verbs) if verbs else "none detected"
 
     prompt = f"""You are an animation director for a Hindu scripture AR system.
@@ -81,7 +80,7 @@ def extract_beats_llm(raw_text: str, characters: list, verbs: list) -> dict:
 Page text:
 \"\"\"{raw_text}\"\"\"
 
-Characters identified: {characters_str}
+Character IDs (use these exactly as-is): {characters_str}
 Action verbs found: {verbs_str}
 
 Produce two JSON objects:
@@ -172,17 +171,20 @@ Return ONLY this JSON structure, no explanation, no markdown:
 
 # ── Main function called by pipeline ─────────────────────────────────────────
 def extract_beats(
-    raw_text: str,
-    story   : str = "",
-    skandha : str = ""
+    raw_text  : str,
+    story     : str  = "",
+    skandha   : str  = "",
+    characters: list = None
 ) -> dict:
     """
     Main entry point. Called directly by pipeline.py with OCR text.
 
     Args:
-        raw_text: OCR extracted text from page (from ocr.py)
-        story:    story name from scaffold
-        skandha:  skandha number from scaffold
+        raw_text:   OCR extracted text from page (from ocr.py)
+        story:      story name from scaffold
+        skandha:    skandha number from scaffold
+        characters: list of character dicts from llm_text_extractor
+                    (each has a "character_id" key matched to scaffold)
 
     Returns:
         {
@@ -190,16 +192,13 @@ def extract_beats(
             "graph3": graph3_dict
         }
     """
-    print("  [beat_extractor] Running rule-based character + verb extraction...")
-    characters = _extract_candidates_from_rule(raw_text)
-    # Convert to lowercase snake_case for consistency
-    characters = [c.lower().replace(" ", "_") for c in characters]
-    verbs      = extract_verbs(raw_text)
-    print(f"  Characters found: {characters}")
-    print(f"  Verbs found     : {verbs}")
+    character_ids = [c["character_id"] for c in (characters or [])]
+    verbs         = extract_verbs(raw_text)
+    print(f"  Character IDs: {character_ids}")
+    print(f"  Verbs found  : {verbs}")
 
     print("  [beat_extractor] Calling LLM for beat division and scene composition...")
-    result = extract_beats_llm(raw_text, characters, verbs)
+    result = extract_beats_llm(raw_text, character_ids, verbs)
 
     # Add story metadata
     result["graph2"]["graph"]   = "animation_generation"
