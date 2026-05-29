@@ -5,8 +5,8 @@ import shutil
 import sys
 import time
 
-ROOT = Path.home() / "projects/Research/3d_gen"
-TRIPOSR = ROOT / "repos/TripoSR"
+SERVICE_ROOT = Path(__file__).resolve().parent
+TRIPOSR = SERVICE_ROOT / "TripoSR"
 
 
 def convert_obj_to_glb(obj_path: Path, glb_path: Path):
